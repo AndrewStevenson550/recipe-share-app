@@ -341,7 +341,7 @@
 
 
         // --- Main App Initialization ---
-        function initializeAppLogic() {
+        function initializeAppLogic(appId) { // <-- appId is now passed in
             // Load Lucide icons
             lucide.createIcons();
 
@@ -510,7 +510,7 @@
             function loadRecipeGallery() {
                 if (galleryListener) galleryListener(); // Detach old listener first
                 
-                const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+                // --- MODIFIED: Uses appId from the function argument ---
                 const collectionPath = `artifacts/${appId}/public/data/recipes`;
                 console.log("Listening for recipes at:", collectionPath);
                 
@@ -797,7 +797,8 @@
 
                     // --- 2. Save Recipe Text (and Image URL) to Firestore ---
                     console.log("Saving recipe to Firestore...");
-                    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+                    
+                    // --- MODIFIED: Uses appId from the function argument ---
                     const collectionPath = `artifacts/${appId}/public/data/recipes`;
                     
                     const recipeData = {
@@ -855,11 +856,29 @@
 
         // --- Entry Point: Initialize Firebase and then the App ---
         try {
-            // Get Firebase config from global var
-            const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+            //
+            // ================== IMPORTANT FIX ==================
+            //
+            // User's Firebase config has been added here
+            //
+            const firebaseConfig = {
+              apiKey: "AIzaSyCdHlMhxy8PvJn3pX6MY6M8aqXdkGChkJ8",
+              authDomain: "cooking-gallery-e99c1.firebaseapp.com",
+              projectId: "cooking-gallery-e99c1",
+              storageBucket: "cooking-gallery-e99c1.firebasestorage.app",
+              messagingSenderId: "866688870493",
+              appId: "1:866688870493:web:dfc33029017441f9cfc5b4",
+              measurementId: "G-Y5KFE7RZY6"
+            };
+            //
+            // ===================================================
+            //
             
+            // --- MODIFIED: Get appId from the config ---
+            const appId = firebaseConfig.appId;
+
             // Check if config is valid
-            if (!firebaseConfig.apiKey) {
+            if (!firebaseConfig.apiKey || firebaseConfig.apiKey.includes("PASTE_YOUR")) {
                 document.body.innerHTML = `<div class="p-8 text-center text-red-600"><h1>Error</h1><p>Firebase configuration is missing. App cannot run.</p></div>`;
                 throw new Error("Firebase config is missing or invalid.");
             }
@@ -869,33 +888,13 @@
             auth = getAuth(app);
             db = getFirestore(app);
             
-            // Sign in (either with token or anonymously)
-            if (typeof __initial_auth_token !== 'undefined') {
-                signInWithCustomToken(auth, __initial_auth_token)
-                    .then(() => {
-                        console.log("Firebase signed in with custom token.");
-                        initializeAppLogic(); // Run the app
-                    })
-                    .catch((error) => {
-                        console.error("Error signing in with custom token:", error);
-                        // Fallback to anonymous
-                        signInAnonymously(auth).then(() => {
-                            console.log("Signed in anonymously after token error.");
-                            initializeAppLogic();
-                        });
-                    });
-            } else {
-                console.log("No auth token, signing in anonymously.");
-                signInAnonymously(auth)
-                    .then(() => {
-                        console.log("Firebase signed in anonymously.");
-                        initializeAppLogic(); // Run the app
-                    })
-                    .catch((error) => {
-                        console.error("Error signing in anonymously:", error);
-                        document.body.innerHTML = `<div class="p-8 text-center text-red-600"><h1>Error</h1><p>Could not sign in anonymously. ${error.message}</p></div>`;
-                    });
-            }
+            // --- MODIFIED: Removed anonymous sign-in for GitHub Pages ---
+            
+            // We are on a live site, so we won't sign in automatically.
+            // The onAuthStateChanged listener inside initializeAppLogic 
+            // will fire with `user = null` and correctly show the login page.
+            console.log("Firebase initialized. App logic will now run.");
+            initializeAppLogic(appId); // <-- Pass appId to the app
 
         } catch (error) {
             console.error("Critical Firebase Init Error:", error);
@@ -905,4 +904,3 @@
     </script>
 </body>
 </html>
-
