@@ -1,0 +1,907 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RecipeShare - Add New Recipe</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Font (Inter) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Lucide Icons CDN -->
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    
+    <!-- Custom Styles -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Custom scrollbar for textareas and modals */
+        textarea::-webkit-scrollbar,
+        #detailContent::-webkit-scrollbar {
+            width: 8px;
+        }
+        textarea::-webkit-scrollbar-track,
+        #detailContent::-webkit-scrollbar-track {
+            background: #f1f5f9; /* slate-100 */
+            border-radius: 4px;
+        }
+        textarea::-webkit-scrollbar-thumb,
+        #detailContent::-webkit-scrollbar-thumb {
+            background: #d1d5db; /* gray-300 */
+            border-radius: 4px;
+        }
+        textarea::-webkit-scrollbar-thumb:hover,
+        #detailContent::-webkit-scrollbar-thumb:hover {
+            background: #9ca3af; /* gray-400 */
+        }
+        
+        /* Hide elements meant to be hidden by default */
+        #appContainer,
+        #successModal,
+        #recipeDetailModal, /* NEW: Hide recipe detail modal */
+        .auth-error {
+            display: none;
+        }
+
+        /* Styling for <pre> tags to make them wrap */
+        pre {
+            white-space: pre-wrap; /* Wrap text */
+            word-wrap: break-word;   /* Break long words */
+            font-family: inherit;    /* Use the same font */
+        }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800 min-h-screen flex items-center justify-center p-4 md:p-8">
+
+    <!-- 
+      Login Container 
+      This is shown by default, and hidden when the user logs in.
+    -->
+    <div id="loginContainer" class="bg-white w-full max-w-md rounded-xl shadow-lg p-6 md:p-8">
+        <header class="mb-6 text-center">
+            <h1 class="text-3xl font-bold text-emerald-700">Welcome to RecipeShare</h1>
+            <p class="text-slate-500 mt-1">Sign in to share and discover recipes.</p>
+        </header>
+
+        <form id="loginForm" class="space-y-4">
+            <!-- Email -->
+            <div>
+                <label for="email" class="block text-sm font-medium text-slate-700 mb-1">Email</label>
+                <input type="email" id="email" placeholder="you@example.com" required class="w-full px-4 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent">
+            </div>
+            
+            <!-- Password -->
+            <div>
+                <label for="password" class="block text-sm font-medium text-slate-700 mb-1">Password</label>
+                <input type="password" id="password" placeholder="••••••••" required class="w-full px-4 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent">
+            </div>
+
+            <!-- Auth Error Message -->
+            <p id="authError" class="auth-error text-sm text-red-600 bg-red-50 border border-red-200 rounded-md p-3"></p>
+
+            <!-- Action Buttons -->
+            <div class="flex flex-col sm:flex-row gap-2">
+                <button type="button" id="signInButton" class="flex-1 px-6 py-2 bg-emerald-600 text-white font-semibold rounded-md shadow-sm hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2">
+                    Sign In
+                </button>
+                <button type="button" id="createAccountButton" class="flex-1 px-6 py-2 border border-slate-300 text-slate-700 font-semibold rounded-md hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2">
+                    Create Account
+                </button>
+            </div>
+
+            <!-- Divider -->
+            <div class="flex items-center my-4">
+                <div class="flex-grow border-t border-slate-200"></div>
+                <span class="flex-shrink mx-4 text-slate-400 text-sm">OR</span>
+                <div class="flex-grow border-t border-slate-200"></div>
+            </div>
+
+            <!-- Google Sign-in -->
+            <button type="button" id="googleSignInButton" class="flex items-center justify-center gap-2 w-full px-6 py-2 bg-white border border-slate-300 text-slate-700 font-semibold rounded-md shadow-sm hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3c-1.6 5.2-6.4 9-11.3 9-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.8 3.1l6-6C34.1 6.3 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.6-.4-3.9z"/><path fill="#FF3D00" d="m6.3 14.8 6.5 4.8C15.5 15.6 19.5 13 24 13c3.1 0 5.8 1.2 7.8 3.1l6-6C34.1 6.3 29.3 4 24 4 16.3 4 9.6 8.3 6.3 14.8z"/><path fill="#4CAF50" d="m24 44c5.2 0 9.8-1.8 13.2-4.7l-5.8-4.5c-1.8 1.2-4.1 1.8-6.4 1.8-4.5 0-8.5-2.6-10-6.3l-6.5 4.8C9.6 40.7 16.3 44 24 44z"/><path fill="#1976D2" d="M43.6 20.1H42V20H24v8h11.3c-1.6 5.2-6.4 9-11.3 9-4.5 0-8.5-2.6-10-6.3l-6.5 4.8C9.6 40.7 16.3 44 24 44s14.4-3.3 17.7-8.8c1.9-3.2 2.7-6.9 2.7-10.9 0-1.3-.1-2.6-.4-3.9z"/></svg>
+                Sign in with Google
+            </button>
+        </form>
+    </div>
+
+
+    <!-- 
+      Main App Container
+      This is hidden by default, and shown when the user logs in.
+    -->
+    <main id="appContainer" class="w-full max-w-2xl space-y-8">
+        
+        <!-- NEW: Main App Tabs Header -->
+        <header class="bg-white w-full rounded-xl shadow-lg p-4 md:p-6 flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+            <!-- Tab Buttons -->
+            <div class="flex border-b border-slate-200">
+                <button type="button" id="mainTabGallery" class="main-tab-button flex items-center gap-2 px-6 py-3 -mb-px border-b-2 border-emerald-600 text-emerald-600 font-semibold focus:outline-none">
+                    <span data-lucide="LayoutGrid"></span>
+                    Recipe Gallery
+                </button>
+                <button type="button" id="mainTabAddRecipe" class="main-tab-button flex items-center gap-2 px-6 py-3 border-b-2 border-transparent text-slate-500 hover:text-slate-700 font-semibold focus:outline-none">
+                    <span data-lucide="PlusSquare"></span>
+                    Add a New Recipe
+                </button>
+            </div>
+            <!-- Sign Out Button (moved here) -->
+            <button id="signOutButton" class="flex-shrink-0 w-full sm:w-auto px-4 py-2 border border-slate-300 text-slate-700 font-semibold rounded-md hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                Sign Out
+            </button>
+        </header>
+
+        <!-- Recipe Gallery (Now a tab panel) -->
+        <section id="gallerySection" class="main-tab-content bg-white w-full rounded-xl shadow-lg p-6 md:p-8">
+            <header class="flex flex-col sm:flex-row justify-between sm:items-center mb-6 gap-4">
+                <div>
+                    <h2 class="text-3xl font-bold text-emerald-700">Recipe Gallery</h2>
+                    <p id="welcomeMessage" class="text-slate-500 mt-1">Loading...</p>
+                </div>
+            </header>
+            
+            <!-- Gallery Grid -->
+            <div id="recipeGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <!-- Recipe cards will be injected here -->
+                <div id="galleryLoading" class="col-span-full flex flex-col items-center justify-center p-8 text-slate-400">
+                    <span class="w-10 h-10 animate-spin"><span data-lucide="Loader2"></span></span>
+                    <p class="mt-4">Loading recipes...</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Main Recipe Card (Now a tab panel) -->
+        <section id="addRecipeSection" class="main-tab-content bg-white w-full max-w-2xl rounded-xl shadow-lg p-6 md:p-8 transition-all" style="display: none;"> <!-- Hidden by default -->
+            <header class="mb-6">
+                <h1 class="text-3xl font-bold text-emerald-700">Add a New Recipe</h1>
+                <p class="text-slate-500 mt-1">Share your culinary creations with the world.</p>
+            </header>
+
+            <!-- Recipe Form -->
+            <form id="recipeForm" class="space-y-6">
+                
+                <!-- Recipe Title -->
+                <div>
+                    <label for="recipeTitle" class="block text-sm font-medium text-slate-700 mb-1">Recipe Title</label>
+                    <input type="text" id="recipeTitle" placeholder="e.g., 'Grandma's Secret Lasagna'" class="w-full px-4 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent">
+                </div>
+
+                <!-- Recipe Description -->
+                <div>
+                    <label for="recipeDesc" class="block text-sm font-medium text-slate-700 mb-1">Short Description</label>
+                    <textarea id="recipeDesc" rows="3" placeholder="A short, tasty summary of your dish..." class="w-full px-4 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent resize-none"></textarea>
+                </div>
+
+                <!-- Food Photo Upload -->
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Food Photo</label>
+                    <label for="photoUpload" id="dropzone" class="flex flex-col items-center justify-center w-full h-48 border-2 border-slate-300 border-dashed rounded-lg cursor-pointer bg-slate-50 hover:bg-slate-100 transition-colors">
+                        <div id="dropzoneContent" class="flex flex-col items-center justify-center pt-5 pb-6">
+                            <svg class="w-10 h-10 mb-3 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-4-4V6a4 4 0 014-4h10a4 4 0 014 4v6a4 4 0 01-4 4H7z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m3-3H7"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16v4a2 2 0 01-2 2H9a2 2 0 01-2-2v-4"></path></svg>
+                            <p class="mb-2 text-sm text-slate-500"><span class="font-semibold">Click to upload</span> or drag and drop</p>
+                            <p class="text-xs text-slate-400">PNG, JPG, or WEBP (MAX. 5MB)</p>
+                        </div>
+                        <!-- Image Preview -->
+                        <img id="photoPreview" class="hidden w-full h-full object-cover rounded-md" src="" alt="Food photo preview">
+                    </label>
+                    <input id="photoUpload" type="file" class="hidden" accept="image/png, image/jpeg, image/webp">
+                </div>
+
+                <!-- Tabs -->
+                <div>
+                    <!-- Tab Buttons -->
+                    <div class="flex border-b border-slate-200">
+                        <button type="button" id="tabIngredients" class="tab-button flex items-center gap-2 px-6 py-3 -mb-px border-b-2 border-emerald-600 text-emerald-600 font-semibold focus:outline-none">
+                            <span data-lucide="List"></span>
+                            Ingredients
+                        </button>
+                        <button type="button" id="tabDirections" class="tab-button flex items-center gap-2 px-6 py-3 border-b-2 border-transparent text-slate-500 hover:text-slate-700 font-semibold focus:outline-none">
+                            <span data-lucide="ListOrdered"></span>
+                            Directions
+                        </button>
+                    </div>
+
+                    <!-- Tab Content: Ingredients -->
+                    <div id="contentIngredients" class="tab-content py-4 space-y-4">
+                        <button type="button" id="scanIngredientsBtn" class="flex items-center justify-center gap-2 w-full px-4 py-2 border border-emerald-300 text-emerald-800 bg-emerald-50 rounded-md hover:bg-emerald-100 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                            <span data-lucide="ScanText"></span>
+                            Scan Ingredients from Photo
+                        </button>
+                        <input type="file" id="scanIngredientsInput" class="hidden" accept="image/png, image/jpeg, image/webp">
+                        <textarea id="ingredientsText" rows="10" placeholder="List your ingredients here, one per line..." class="w-full px-4 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent resize-y"></textarea>
+                    </div>
+
+                    <!-- Tab Content: Directions -->
+                    <div id="contentDirections" class="tab-content py-4 space-y-4 hidden">
+                        <button type="button" id="scanDirectionsBtn" class="flex items-center justify-center gap-2 w-full px-4 py-2 border border-emerald-300 text-emerald-800 bg-emerald-50 rounded-md hover:bg-emerald-100 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                            <span data-lucide="ScanText"></span>
+                            Scan Directions from Photo
+                        </button>
+                        <input type="file" id="scanDirectionsInput" class="hidden" accept="image/png, image/jpeg, image/webp">
+                        <textarea id="directionsText" rows="10" placeholder="Write the steps for your recipe here..." class="w-full px-4 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent resize-y"></textarea>
+                    </div>
+                </div>
+
+                <!-- Submit Button -->
+                <button type="submit" id="saveButton" class="flex items-center justify-center w-full px-6 py-3 bg-emerald-600 text-white text-lg font-semibold rounded-md shadow-md hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 transition-all">
+                    <span id="saveButtonText">Save & Upload Recipe</span>
+                    <span id="saveSpinner" class="hidden w-5 h-5 animate-spin">
+                        <span data-lucide="Loader2"></span>
+                    </span>
+                </button>
+            </form>
+        </section>
+    </main>
+
+    <!-- Success Modal -->
+    <div id="successModal" class="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center p-4 transition-opacity duration-300">
+        <div class="bg-white rounded-xl shadow-2xl p-8 max-w-md w-full text-center">
+            <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-emerald-100 mb-4">
+                <span data-lucide="CheckCircle" class="h-10 w-10 text-emerald-600"></span>
+            </div>
+            <h3 class="text-2xl font-semibold text-slate-800 mb-2">Recipe Uploaded!</h3>
+            <p class="text-slate-500 mb-6">Your recipe is now live for the community to see. What will you share next?</p>
+            <button id="closeModalButton" class="w-full px-6 py-2 bg-emerald-600 text-white font-semibold rounded-md hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2">
+                Add Another Recipe
+            </button>
+        </div>
+    </div>
+
+    <!-- 
+      NEW: Recipe Detail Modal
+      This modal pops up when a user clicks a recipe in the gallery.
+    -->
+    <div id="recipeDetailModal" class="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center p-4 transition-opacity duration-300">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+            <!-- Modal Header -->
+            <header class="flex justify-between items-center p-4 border-b border-slate-200">
+                <h3 id="detailTitle" class="text-2xl font-semibold text-emerald-700">Recipe Title</h3>
+                <button id="closeDetailModalButton" class="text-slate-400 hover:text-slate-600 focus:outline-none">
+                    <span data-lucide="X" class="w-6 h-6"></span>
+                </button>
+            </header>
+            
+            <!-- Modal Content (Scrollable) -->
+            <div id="detailContent" class="p-6 space-y-4 overflow-y-auto">
+                <img id="detailImage" src="https://placehold.co/600x400/e2e8f0/94a3b8?text=Recipe+Photo" alt="Recipe photo" class="w-full h-64 object-cover rounded-lg border border-slate-200">
+                
+                <p id="detailDesc" class="text-slate-600">Recipe description goes here.</p>
+
+                <!-- Ingredients -->
+                <div>
+                    <h4 class="text-xl font-semibold text-emerald-600 mb-2">Ingredients</h4>
+                    <pre id="detailIngredients" class="text-slate-700 bg-slate-50 p-4 rounded-md border border-slate-200"></pre>
+                </div>
+
+                <!-- Directions -->
+                <div>
+                    <h4 class="text-xl font-semibold text-emerald-600 mb-2">Directions</h4>
+                    <pre id="detailDirections" class="text-slate-700 bg-slate-50 p-4 rounded-md border border-slate-200"></pre>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- 
+      ===============================================================
+      JavaScript (Combined into one module script)
+      ===============================================================
+    -->
+    <script type="module">
+        // Import Firebase modules
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { 
+            getAuth, 
+            onAuthStateChanged,
+            GoogleAuthProvider,
+            signInWithPopup,
+            createUserWithEmailAndPassword,
+            signInWithEmailAndPassword,
+            signOut,
+            signInWithCustomToken,
+            signInAnonymously
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { 
+            getFirestore, 
+            collection, 
+            addDoc, 
+            onSnapshot,
+            query,
+            doc,
+            getDocs
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // --- Global Variables ---
+        let app, auth, db, currentUserId;
+        
+        // --- Gemini API Key (from user) ---
+        const geminiApiKey = "AIzaSyCVS1-xB69HWbX9yGz2besMlQ3nTcdJ1KQ";
+
+        // --- Cloudinary Configuration ---
+        const CLOUDINARY_CLOUD_NAME = "dw1f0mxbu"; // From user (This is the correct Cloud Name)
+        const CLOUDINARY_UPLOAD_PRESET = "Recipe Share"; // From user screenshot
+        // The Upload Preset MUST be set to "Unsigned" in your Cloudinary account
+        
+        
+        // --- Helper function to show auth errors ---
+        const authError = document.getElementById('authError');
+        function showAuthError(message) {
+            authError.textContent = message;
+            authError.style.display = 'block';
+        }
+        function hideAuthError() {
+            authError.style.display = 'none';
+        }
+
+
+        // --- Main App Initialization ---
+        function initializeAppLogic() {
+            // Load Lucide icons
+            lucide.createIcons();
+
+            // --- App State Elements ---
+            const loginContainer = document.getElementById('loginContainer');
+            const appContainer = document.getElementById('appContainer');
+
+            // --- Auth Elements ---
+            const emailInput = document.getElementById('email');
+            const passwordInput = document.getElementById('password');
+            const signInButton = document.getElementById('signInButton');
+            const createAccountButton = document.getElementById('createAccountButton');
+            const googleSignInButton = document.getElementById('googleSignInButton');
+            const signOutButton = document.getElementById('signOutButton');
+            const welcomeMessage = document.getElementById('welcomeMessage');
+            
+            // --- Main App Tab Elements ---
+            const mainTabGallery = document.getElementById('mainTabGallery');
+            const mainTabAddRecipe = document.getElementById('mainTabAddRecipe');
+            const gallerySection = document.getElementById('gallerySection');
+            const addRecipeSection = document.getElementById('addRecipeSection');
+
+            // --- Gallery Elements ---
+            const recipeGrid = document.getElementById('recipeGrid');
+            const galleryLoading = document.getElementById('galleryLoading');
+            
+            // --- Form Elements ---
+            const recipeForm = document.getElementById('recipeForm');
+            const recipeTitle = document.getElementById('recipeTitle');
+            const recipeDesc = document.getElementById('recipeDesc');
+
+            // Photo Upload & Preview
+            const photoUpload = document.getElementById('photoUpload');
+            const dropzone = document.getElementById('dropzone');
+            const dropzoneContent = document.getElementById('dropzoneContent');
+            const photoPreview = document.getElementById('photoPreview');
+            let photoFile = null; // Variable to store the selected photo file
+
+            // (Ingredients/Directions) Tabs
+            const tabIngredients = document.getElementById('tabIngredients');
+            const tabDirections = document.getElementById('tabDirections');
+            const contentIngredients = document.getElementById('contentIngredients');
+            const contentDirections = document.getElementById('contentDirections');
+
+            // OCR (Ingredients)
+            const scanIngredientsBtn = document.getElementById('scanIngredientsBtn');
+            const scanIngredientsInput = document.getElementById('scanIngredientsInput');
+            const ingredientsText = document.getElementById('ingredientsText');
+
+            // OCR (Directions)
+            const scanDirectionsBtn = document.getElementById('scanDirectionsBtn');
+            const scanDirectionsInput = document.getElementById('scanDirectionsInput');
+            const directionsText = document.getElementById('directionsText');
+
+            // Submission
+            const saveButton = document.getElementById('saveButton');
+            const saveButtonText = document.getElementById('saveButtonText');
+            const saveSpinner = document.getElementById('saveSpinner');
+
+            // Modal (Success)
+            const successModal = document.getElementById('successModal');
+            const closeModalButton = document.getElementById('closeModalButton');
+            
+            // --- NEW: Recipe Detail Modal Elements ---
+            const recipeDetailModal = document.getElementById('recipeDetailModal');
+            const closeDetailModalButton = document.getElementById('closeDetailModalButton');
+            const detailImage = document.getElementById('detailImage');
+            const detailTitle = document.getElementById('detailTitle');
+            const detailDesc = document.getElementById('detailDesc');
+            const detailIngredients = document.getElementById('detailIngredients');
+            const detailDirections = document.getElementById('detailDirections');
+            const placeholderImg = 'https://placehold.co/600x400/e2e8f0/94a3b8?text=No+Photo';
+
+
+            // --- Auth State Logic ---
+            let galleryListener = null; // To store our realtime listener
+            
+            onAuthStateChanged(auth, (user) => {
+                if (user) {
+                    // User is signed in
+                    console.log("User signed in:", user.uid);
+                    currentUserId = user.uid;
+                    loginContainer.style.display = 'none';
+                    appContainer.style.display = 'block';
+                    welcomeMessage.textContent = `Welcome, ${user.email || 'friend'}!`;
+                    
+                    // Start listening for recipes
+                    loadRecipeGallery();
+                    // Ensure default tab is active
+                    activateMainTab(mainTabGallery, gallerySection);
+
+                } else {
+                    // User is signed out
+                    console.log("No user signed in.");
+                    currentUserId = null;
+                    loginContainer.style.display = 'block';
+                    appContainer.style.display = 'none';
+                    welcomeMessage.textContent = 'Please sign in.';
+                    
+                    // Stop listening to save resources
+                    if (galleryListener) {
+                        console.log("Detaching gallery listener.");
+                        galleryListener(); // This detaches the listener
+                        galleryListener = null;
+                    }
+                    recipeGrid.innerHTML = ''; // Clear the grid
+                    galleryLoading.style.display = 'flex';
+                }
+            });
+
+            // --- Authentication Event Handlers ---
+            signInButton.addEventListener('click', async () => {
+                hideAuthError();
+                try {
+                    await signInWithEmailAndPassword(auth, emailInput.value, passwordInput.value);
+                } catch (error) {
+                    showAuthError(error.message);
+                }
+            });
+            
+            createAccountButton.addEventListener('click', async () => {
+                hideAuthError();
+                try {
+                    await createUserWithEmailAndPassword(auth, emailInput.value, passwordInput.value);
+                } catch (error) {
+                    showAuthError(error.message);
+                }
+            });
+
+            googleSignInButton.addEventListener('click', async () => {
+                hideAuthError();
+                const provider = new GoogleAuthProvider();
+                try {
+                    await signInWithPopup(auth, provider);
+                } catch (error) {
+                    showAuthError(error.message);
+                }
+            });
+            
+            signOutButton.addEventListener('click', async () => {
+                await signOut(auth);
+            });
+
+
+            // --- Main App Tab Switching Logic ---
+            function activateMainTab(tabToShow, contentToShow) {
+                // Deactivate all tabs and content
+                [mainTabGallery, mainTabAddRecipe].forEach(t => {
+                    t.classList.remove('text-emerald-600', 'border-emerald-600');
+                    t.classList.add('text-slate-500', 'border-transparent', 'hover:text-slate-700');
+                });
+                [gallerySection, addRecipeSection].forEach(c => c.style.display = 'none');
+
+                // Activate specified tab and content
+                tabToShow.classList.add('text-emerald-600', 'border-emerald-600');
+                tabToShow.classList.remove('text-slate-500', 'border-transparent', 'hover:text-slate-700');
+                contentToShow.style.display = 'block';
+                lucide.createIcons(); // Redraw icons if needed
+            }
+
+            mainTabGallery.addEventListener('click', () => activateMainTab(mainTabGallery, gallerySection));
+            mainTabAddRecipe.addEventListener('click', () => activateMainTab(mainTabAddRecipe, addRecipeSection));
+
+
+            // --- Recipe Gallery Logic ---
+            function loadRecipeGallery() {
+                if (galleryListener) galleryListener(); // Detach old listener first
+                
+                const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+                const collectionPath = `artifacts/${appId}/public/data/recipes`;
+                console.log("Listening for recipes at:", collectionPath);
+                
+                const q = query(collection(db, collectionPath));
+                
+                galleryListener = onSnapshot(q, (querySnapshot) => {
+                    console.log("Received gallery update. Empty:", querySnapshot.empty);
+                    galleryLoading.style.display = 'none';
+                    recipeGrid.innerHTML = ''; // Clear grid
+                    
+                    if (querySnapshot.empty) {
+                        recipeGrid.innerHTML = `<p class="col-span-full text-slate-500 text-center">No recipes yet. Be the first to share!</p>`;
+                        return;
+                    }
+
+                    querySnapshot.forEach((doc) => {
+                        const recipe = doc.data();
+                        const card = document.createElement('div');
+                        
+                        // --- MODIFICATION: Added classes and data attributes ---
+                        card.className = 'recipe-card bg-slate-50 rounded-lg shadow-sm overflow-hidden border border-slate-200 cursor-pointer hover:shadow-md transition-shadow';
+                        
+                        // Store all recipe data on the card element
+                        card.dataset.title = recipe.title || 'Untitled Recipe';
+                        card.dataset.description = recipe.description || 'No description.';
+                        card.dataset.image = recipe.imageUrl || placeholderImg;
+                        card.dataset.ingredients = recipe.ingredients || 'No ingredients listed.';
+                        card.dataset.directions = recipe.directions || 'No directions provided.';
+                        
+                        card.innerHTML = `
+                            <img src="${recipe.imageUrl || placeholderImg}" alt="${recipe.title}" class="w-full h-32 object-cover" onerror="this.src='${placeholderImg}';">
+                            <div class="p-4">
+                                <h3 class="font-semibold text-lg text-emerald-700">${recipe.title}</h3>
+                                <p class="text-sm text-slate-600 truncate">${recipe.description}</p>
+                            </div>
+                        `;
+                        recipeGrid.appendChild(card);
+                    });
+                }, (error) => {
+                    console.error("Error loading gallery:", error);
+                    galleryLoading.style.display = 'none';
+                    recipeGrid.innerHTML = `<p class="col-span-full text-red-500 text-center p-4"><b>Error loading recipes.</b><br>Please check your Firestore security rules.</p>`;
+                });
+            }
+
+            // --- NEW: Recipe Detail Modal Logic ---
+            
+            // Show modal with data from the clicked card
+            function showRecipeDetails(data) {
+                detailTitle.textContent = data.title;
+                detailDesc.textContent = data.description;
+                detailImage.src = data.image;
+                detailImage.onerror = () => { detailImage.src = placeholderImg; };
+                detailIngredients.textContent = data.ingredients;
+                detailDirections.textContent = data.directions;
+
+                recipeDetailModal.style.display = 'flex';
+                lucide.createIcons(); // Redraw close icon
+            }
+
+            // Hide modal
+            function hideRecipeDetails() {
+                recipeDetailModal.style.display = 'none';
+            }
+
+            // Event listener for the whole grid (event delegation)
+            recipeGrid.addEventListener('click', (e) => {
+                const card = e.target.closest('.recipe-card');
+                if (card) {
+                    showRecipeDetails(card.dataset);
+                }
+            });
+
+            // Event listener for the modal close button
+            closeDetailModalButton.addEventListener('click', hideRecipeDetails);
+
+            // Event listener to close modal by clicking backdrop
+            recipeDetailModal.addEventListener('click', (e) => {
+                if (e.target === recipeDetailModal) {
+                    hideRecipeDetails();
+                }
+            });
+
+
+            // --- (Ingredients/Directions) Tab Switching Logic ---
+            function activateFormTab(tab, content) {
+                [tabIngredients, tabDirections].forEach(t => {
+                    t.classList.remove('text-emerald-600', 'border-emerald-600');
+                    t.classList.add('text-slate-500', 'border-transparent', 'hover:text-slate-700');
+                });
+                [contentIngredients, contentDirections].forEach(c => c.classList.add('hidden'));
+
+                tab.classList.add('text-emerald-600', 'border-emerald-600');
+                tab.classList.remove('text-slate-500', 'border-transparent', 'hover:text-slate-700');
+                content.classList.remove('hidden');
+            }
+            tabIngredients.addEventListener('click', () => activateFormTab(tabIngredients, contentIngredients));
+            tabDirections.addEventListener('click', () => activateFormTab(tabDirections, contentDirections));
+
+
+            // --- Food Photo Preview Logic ---
+            function handlePhotoPreview(file) {
+                if (file) {
+                    photoFile = file; // Store the file for upload
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        photoPreview.src = e.target.result;
+                        photoPreview.classList.remove('hidden');
+                        dropzoneContent.classList.add('hidden');
+                        dropzone.classList.remove('h-48');
+                        dropzone.style.height = 'auto'; // Adjust height
+                    };
+                    reader.readAsDataURL(file);
+                }
+            }
+            photoUpload.addEventListener('change', (e) => handlePhotoPreview(e.target.files[0]));
+
+
+            // --- Drag and Drop Logic ---
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                dropzone.addEventListener(eventName, e => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }, false);
+            });
+            ['dragenter', 'dragover'].forEach(eventName => {
+                dropzone.addEventListener(eventName, () => {
+                    dropzone.classList.add('border-emerald-500', 'bg-emerald-50');
+                }, false);
+            });
+            ['dragleave', 'drop'].forEach(eventName => {
+                dropzone.addEventListener(eventName, () => {
+                    dropzone.classList.remove('border-emerald-500', 'bg-emerald-50');
+                }, false);
+            });
+            dropzone.addEventListener('drop', (e) => {
+                const file = e.dataTransfer.files[0];
+                if (file) {
+                    handlePhotoPreview(file);
+                }
+            }, false);
+
+            
+            // --- Helper function to convert File to Base64 ---
+            function fileToBase64(file) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.readAsDataURL(file);
+                    reader.onload = () => {
+                        // Result includes "data:image/jpeg;base64," prefix,
+                        // so we split and take just the base64 part.
+                        resolve(reader.result.split(',')[1]);
+                    };
+                    reader.onerror = error => reject(error);
+                });
+            }
+
+            
+            // --- AI-Powered OCR Logic (Gemini API) ---
+            async function handleScan(event, textarea, button) {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                const originalButtonHTML = button.innerHTML;
+                button.disabled = true;
+                button.innerHTML = `
+                    <span class="w-5 h-5 animate-spin"><span data-lucide="Loader2"></span></span>
+                    Scanning with AI...`;
+                lucide.createIcons();
+
+                try {
+                    const base64ImageData = await fileToBase64(file);
+                    
+                    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${geminiApiKey}`;
+                    
+                    const payload = {
+                        contents: [{
+                            role: "user",
+                            parts: [
+                                { text: "Read all the text from this image. It is a recipe. Extract the ingredients or directions listed, keeping their original formatting as much as possible." },
+                                { inlineData: { mimeType: file.type, data: base64ImageData } }
+                            ]
+                        }],
+                    };
+                    
+                    // --- Exponential Backoff Retry Logic ---
+                    let response;
+                    let delay = 1000; // 1 second
+                    for (let i = 0; i < 4; i++) { // Try up to 4 times
+                        response = await fetch(apiUrl, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(payload)
+                        });
+                        
+                        if (response.ok) break; // Success!
+                        
+                        if (response.status === 429 || response.status >= 500) {
+                            // If throttled or server error, wait and retry
+                            await new Promise(resolve => setTimeout(resolve, delay));
+                            delay *= 2; // Double the wait time
+                        } else {
+                            // For other errors (like 400), don't retry
+                            break;
+                        }
+                    }
+                    // --- End of Retry Logic ---
+
+
+                    if (!response.ok) {
+                        const errorBody = await response.json();
+                        console.error('API Error Body:', errorBody);
+                        throw new Error(`API error: ${response.status} ${response.statusText}`);
+                    }
+
+                    const result = await response.json();
+                    const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
+
+                    if (text) {
+                        textarea.value = text;
+                    } else {
+                        throw (new Error("No text found in API response."));
+                    }
+                } catch (error) {
+                    console.error('AI Scan Error:', error);
+                    textarea.value = `Error scanning text. Please check console for details.`;
+                } finally {
+                    button.disabled = false;
+                    button.innerHTML = originalButtonHTML;
+                    lucide.createIcons();
+                    event.target.value = null; // Clear input
+                }
+            }
+
+            // Trigger scan functions
+            scanIngredientsBtn.addEventListener('click', () => scanIngredientsInput.click());
+            scanIngredientsInput.addEventListener('change', (e) => handleScan(e, ingredientsText, scanIngredientsBtn));
+            
+            scanDirectionsBtn.addEventListener('click', () => scanDirectionsInput.click());
+            scanDirectionsInput.addEventListener('change', (e) => handleScan(e, directionsText, scanDirectionsBtn));
+
+
+            // --- Form Submission (Main Logic) ---
+            recipeForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                console.log("Recipe form submitted.");
+
+                // Show loading state
+                saveButton.disabled = true;
+                saveButtonText.classList.add('hidden');
+                saveSpinner.classList.remove('hidden');
+                lucide.createIcons();
+
+                let imageUrl = '';
+
+                try {
+                    // --- 1. Upload Photo to Cloudinary (if one was added) ---
+                    if (photoFile) {
+                        console.log("Uploading photo to Cloudinary...");
+                        const formData = new FormData();
+                        formData.append('file', photoFile);
+                        formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+                        
+                        const uploadUrl = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`;
+
+                        const response = await fetch(uploadUrl, {
+                            method: 'POST',
+                            body: formData,
+                        });
+
+                        const data = await response.json();
+                        
+                        if (response.ok) {
+                            imageUrl = data.secure_url; // Get the URL
+                            console.log("Photo upload success:", imageUrl);
+                        } else {
+                            // Log the specific error from Cloudinary
+                            console.error('Cloudinary upload error:', data);
+                            throw new Error(`Cloudinary upload failed: ${data.error.message}`);
+                        }
+                    } else {
+                        console.log("No photo file selected, skipping upload.");
+                    }
+
+                    // --- 2. Save Recipe Text (and Image URL) to Firestore ---
+                    console.log("Saving recipe to Firestore...");
+                    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+                    const collectionPath = `artifacts/${appId}/public/data/recipes`;
+                    
+                    const recipeData = {
+                        userId: currentUserId,
+                        title: recipeTitle.value,
+                        description: recipeDesc.value,
+                        ingredients: ingredientsText.value,
+                        directions: directionsText.value,
+                        imageUrl: imageUrl, // Will be empty string if no photo
+                        createdAt: new Date().toISOString()
+                    };
+
+                    const docRef = await addDoc(collection(db, collectionPath), recipeData);
+                    console.log("Recipe saved with ID:", docRef.id);
+
+                    // --- 3. Show Success ---
+                    resetForm();
+                    successModal.style.display = 'flex';
+
+                } catch (error) {
+                    console.error("Error uploading recipe:", error);
+                    alert("Error saving recipe. Please check the console for details.");
+                } finally {
+                    // Hide loading state
+                    saveButton.disabled = false;
+                    saveButtonText.classList.remove('hidden');
+                    saveSpinner.classList.add('hidden');
+                }
+            });
+            
+
+            // --- Reset Form and Modal Logic ---
+            function resetForm() {
+                recipeForm.reset(); // Resets all text fields
+                photoFile = null; // Clear the stored file
+                
+                // Reset photo preview
+                photoPreview.src = '';
+                photoPreview.classList.add('hidden');
+                dropzoneContent.classList.remove('hidden');
+                dropzone.classList.add('h-48');
+                dropzone.style.height = '';
+
+                // Reset to default tab
+                activateFormTab(tabIngredients, contentIngredients);
+            }
+
+            closeModalButton.addEventListener('click', () => {
+                successModal.style.display = 'none';
+                // Switch back to the "Add Recipe" tab to add another one
+                activateMainTab(mainTabAddRecipe, addRecipeSection);
+            });
+        }
+
+
+        // --- Entry Point: Initialize Firebase and then the App ---
+        try {
+            // Get Firebase config from global var
+            const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+            
+            // Check if config is valid
+            if (!firebaseConfig.apiKey) {
+                document.body.innerHTML = `<div class="p-8 text-center text-red-600"><h1>Error</h1><p>Firebase configuration is missing. App cannot run.</p></div>`;
+                throw new Error("Firebase config is missing or invalid.");
+            }
+
+            // Initialize Firebase
+            app = initializeApp(firebaseConfig);
+            auth = getAuth(app);
+            db = getFirestore(app);
+            
+            // Sign in (either with token or anonymously)
+            if (typeof __initial_auth_token !== 'undefined') {
+                signInWithCustomToken(auth, __initial_auth_token)
+                    .then(() => {
+                        console.log("Firebase signed in with custom token.");
+                        initializeAppLogic(); // Run the app
+                    })
+                    .catch((error) => {
+                        console.error("Error signing in with custom token:", error);
+                        // Fallback to anonymous
+                        signInAnonymously(auth).then(() => {
+                            console.log("Signed in anonymously after token error.");
+                            initializeAppLogic();
+                        });
+                    });
+            } else {
+                console.log("No auth token, signing in anonymously.");
+                signInAnonymously(auth)
+                    .then(() => {
+                        console.log("Firebase signed in anonymously.");
+                        initializeAppLogic(); // Run the app
+                    })
+                    .catch((error) => {
+                        console.error("Error signing in anonymously:", error);
+                        document.body.innerHTML = `<div class="p-8 text-center text-red-600"><h1>Error</h1><p>Could not sign in anonymously. ${error.message}</p></div>`;
+                    });
+            }
+
+        } catch (error) {
+            console.error("Critical Firebase Init Error:", error);
+            document.body.innerHTML = `<div class="p-8 text-center text-red-600"><h1>Fatal Error</h1><p>${error.message}</p></div>`;
+        }
+
+    </script>
+</body>
+</html>
